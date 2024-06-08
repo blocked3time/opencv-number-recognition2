@@ -28,7 +28,7 @@ int number_recognition(Mat img) {
         }
         px = ((px / vvp[1].size()) - stats.at<int>(1, 0)) / stats.at<int>(1, 2);
         py = ((py /vvp[1].size()) - stats.at<int>(1, 1))/ stats.at<int>(1, 3);
-        if ((cgx >= 0.6 && cgy <= 0.53) && (py <= 0.4))//9
+        if ((cgx >= 0.55 && cgy <= 0.53) && (py <= 0.4))//9
             return 9;
         else if (cgy >= 0.53 && py >= 0.6)//6
             return 6;
@@ -39,7 +39,7 @@ int number_recognition(Mat img) {
         else return -1;
     }
     else if (vvp.size() == 1) {//외각선이 1개 일 떄
-        if (((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2)) > 1.9&&  ((0.43 <= cgy && cgy <= 0.57)&&((0.4 <= cgx && cgx <= 0.6)))) {//1
+        if (((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2)) > 2 && ((0.4 <= cgy && cgy <= 0.6)&& (0.3 <= cgx && cgx <= 0.7))) {//1
             return 1;
         }
         else {
@@ -66,13 +66,13 @@ int number_recognition(Mat img) {
             }
          //   cout << "rt lt \nrd ld :\n " << lt << rt << endl << lb << rb << endl;
          //   imshow("dst", dst);
-            if (rt >= 1 && rb >= 1)
+            if ((rt >= 1 && rb >= 1) && (cgx >= 0.5))
                 return 3;
             else if (rt >= 1 && lb >= 1)
                 return 2;
             else if ((lt >= 1 && rb >= 1) && (rt == 0 && lb == 0))
                 return 5;
-            else if (lt == 0 && (rb == 0 && lb == 0))
+            else if ((lt == 0 && lb == 0)&&(cgy<=0.5))
                 return 7;
             else return -1;
         }
