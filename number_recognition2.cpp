@@ -1,16 +1,91 @@
-//2001223 ¡§øÎ±‘
-//https://www.youtube.com/watch?v=5bQ78DNlzPo
+//2001223 Ï†ïÏö©Í∑ú
+//https://www.youtube.com/watch?v=JnqAQjuFL-s
 #include <iostream>
 #include<vector>
 #include "opencv2/opencv.hpp"
 using namespace std;
 using namespace cv;
+
+int number_recognition(Mat img) {
+    Mat lable, stats, cen, dst;
+    double px = 0, py = 0;
+    vector<vector<Point>> vvp;
+    vector<vector<Point>> vvp2;
+    vector<Vec4i> hierarchy;
+    cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
+    threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
+    connectedComponentsWithStats(dst, lable, stats, cen);
+    findContours(dst, vvp, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+    double cgx = (cen.at<double>(1, 0) - stats.at<int>(1, 0)) / stats.at<int>(1, 2),
+        cgy = (cen.at<double>(1, 1) - stats.at<int>(1, 1)) / stats.at<int>(1, 3);//center of gravity x,y
+    if (vvp.size() == 3) {//Ïô∏Í∞ÅÏÑ†Ïù¥ 3Ïùº ÎñÑ 
+        return 8;
+    }
+    else if (vvp.size() == 2) {
+        for (int j = 0; j < vvp[1].size(); j++) {//2Î≤àÏß∏ Ïô∏Í∞ÅÏÑ†Ïùò Î¨¥Í≤åÏ§ëÏã¨ Íµ¨ÌïòÍ∏∞
+            px += vvp[1][j].x;
+            py += vvp[1][j].y;
+        }
+        px = ((px / vvp[1].size()) - stats.at<int>(1, 0)) / stats.at<int>(1, 2);
+        py = ((py /vvp[1].size()) - stats.at<int>(1, 1))/ stats.at<int>(1, 3);
+        if ((cgx >= 0.6 && cgy <= 0.53) && (py <= 0.4))//9
+            return 9;
+        else if (cgy >= 0.53 && py >= 0.6)//6
+            return 6;
+        else if ((cgx <= 0.55 && cgx <= 0.55) && (py <= 0.4 && px < 0.4))//4
+            return 4;
+        else if (((0.4 <= cgx && cgx <= 0.6) && (0.4 <= cgy && cgy <= 0.6))&&((0.4 <= px && px <= 0.6) && (0.4 <= py && py <= 0.6)))//Î¨¥Í≤å Ï§ëÏã¨Ïù¥ Ï§ëÍ∞ÑÏùº ÎñÑ
+        return 0;
+        else return -1;
+    }
+    else if (vvp.size() == 1) {//Ïô∏Í∞ÅÏÑ†Ïù¥ 1Í∞ú Ïùº ÎñÑ
+        if (((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2)) > 1.9&&  ((0.43 <= cgy && cgy <= 0.57)&&((0.4 <= cgx && cgx <= 0.6)))) {//1
+            return 1;
+        }
+        else {
+            if (((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2)) < 0.5)
+                return -1;
+            int rt = 0, lt = 0, rb = 0, lb = 0;//Ïö∞ÏÉÅÏ¢åÏÉÅÏö∞ÌïòÏ¢åÌïò Ïπ¥Ïö¥Ìä∏
+            double mx = cen.at<double>(1, 0);//stats.at<int>(1, 0) + stats.at<int>(1, 2) / 2;
+            double my = stats.at<int>(1, 1) + stats.at<int>(1, 3) / 2;
+            line(dst, Point(mx, stats.at<int>(1, 1)),
+                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 3);
+            findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+            for (int i = 1; i < vvp2.size(); i++) {
+                for (int j = 0; j < vvp2[i].size(); j++) {
+                    px += vvp2[i][j].x;
+                    py += vvp2[i][j].y;
+                }
+                px /= vvp2[i].size();
+                py /= vvp2[i].size();
+                dst.at<uchar>(py, px) = 255;//Ï†ê ÌëúÏãú
+                if (px < mx && py < my) lt++;
+                else if (px > mx && py < my) rt++;
+                else if (px < mx && py > my) lb++;
+                else if (px > mx && py > my) rb++;
+            }
+         //   cout << "rt lt \nrd ld :\n " << lt << rt << endl << lb << rb << endl;
+         //   imshow("dst", dst);
+            if (rt >= 1 && rb >= 1)
+                return 3;
+            else if (rt >= 1 && lb >= 1)
+                return 2;
+            else if ((lt >= 1 && rb >= 1) && (rt == 0 && lb == 0))
+                return 5;
+            else if (lt == 0 && (rb == 0 && lb == 0))
+                return 7;
+            else return -1;
+        }
+    }
+    else return -1;
+}
 void mousecallback(int e, int x, int y, int f, void* u) {
     Mat img = *(Mat*)u, lable, stats, cen, dst;
     static Point op;
     vector<vector<Point>> vvp;
+    vector<vector<Point>> vvp2;
     vector<Vec4i> hierarchy;
-    Rect r(Point(0, 0), Point(499, 499));//øµø™ ∫–«“
+    Rect r(Point(0, 0), Point(499, 499));//ÏòÅÏó≠ Î∂ÑÌï†
     Rect s(Point(499, 0), Point(699, 99));
     Rect l(Point(499, 99), Point(699, 199));
     Rect c(Point(499, 199), Point(699, 299));
@@ -26,67 +101,123 @@ void mousecallback(int e, int x, int y, int f, void* u) {
         if (r.contains(Point(x, y))) {
             op = Point(x, y);
         }
-        else if (c.contains(Point(x, y))) {
+        else if (c.contains(Point(x, y))) {//ÌÅ¥Î¶¨Ïñ¥
             cout << "clear" << endl;
             img(Rect(Point(2, 2), Point(498, 498))).setTo(255);
         }
         else if (s.contains(Point(x, y))) {
             String s;
-            Mat dst;
-            cout << "∆ƒ¿œ ∏Ì ¿‘∑¬ :";
+            cout << "ÌååÏùº Î™Ö ÏûÖÎ†• :";
             cin >> s;
-            resize(img(Rect(Point(2, 2), Point(498, 498))), dst, Size(500, 500), 0, 0);//∏ÆªÁ¿Ã¡Ó∑Œ 500x500ªÁ¿Ã¡Ó ∏¬√„
+            resize(img(Rect(Point(2, 2), Point(498, 498))), dst, Size(500, 500), 0, 0);//Î¶¨ÏÇ¨Ïù¥Ï¶àÎ°ú 500x500ÏÇ¨Ïù¥Ï¶à ÎßûÏ∂§
             imwrite(s, dst);
-            cout << s << " ¿˙¿Âµ " << endl;
+            cout << s << " Ï†ÄÏû•Îê®" << endl;
         }
         else if (l.contains(Point(x, y))) {
             String s;
-            cout << "∆ƒ¿œ ∏Ì ¿‘∑¬ :";
+            cout << "ÌååÏùº Î™Ö ÏûÖÎ†• :";
             cin >> s;
-            Mat m = imread(s);
+            dst = imread(s);
             if (s.empty()) {
-                cerr << "¿ÃπÃ¡ˆ ∫“∑Øø¿±‚ Ω«∆–!" << endl;
+                cerr << "Ïù¥ÎØ∏ÏßÄ Î∂àÎü¨Ïò§Í∏∞ Ïã§Ìå®!" << endl;
                 return;
             }
-            cout << "iamge ∫“∑Øø»" << endl;
-            resize(m, m, Size(496, 496));
-            m.copyTo(img(Rect(Point(2, 2), Point(498, 498))));//ªÁ¿Ã¡Ó ∏¬√„
+            cout << "iamge Î∂àÎü¨Ïò¥" << endl;
+            resize(dst, dst, Size(496, 496));
+            dst.copyTo(img(Rect(Point(2, 2), Point(498, 498))));//ÏÇ¨Ïù¥Ï¶à ÎßûÏ∂§
         }
-        else if (ex.contains(Point(x, y))) {
-            cout << "¡æ∑·";
-            exit(1);
-        }
-        else if (f1.contains(Point(x, y))) {//∫Ò¿≤
-            cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
-            threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
-            int i = connectedComponentsWithStats(dst, lable, stats, cen);
-            cout << "∫Ò¿≤ (height)/(width)" << ((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2)) << endl;
+        else if (run.contains(Point(x, y))) {
+            
+            int num = number_recognition(img);
+            if (num == -1) {
+                cerr << "Ïù∏Ïãù Î∂àÍ∞Ä" << endl;
+                return;
+            }
+            else 
+                cout <<"Ïù∏ÏãùÌïú Í∞í"  << num << endl;
             break;
         }
-        else if (f2.contains(Point(x, y))) {//ø‹∞¢º±
+        else if (ex.contains(Point(x, y))) {
+            cout << "Ï¢ÖÎ£å";
+            exit(1);
+        }
+        else if (f1.contains(Point(x, y))) {//ÎπÑÏú®
+            cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
+            threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
+            connectedComponentsWithStats(dst, lable, stats, cen);
+            cout << "ÎπÑÏú® (height)/(width)" << ((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2)) << endl;
+            break;
+        }
+        else if (f2.contains(Point(x, y))) {//Ïô∏Í∞ÅÏÑ†
             cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
             threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
             findContours(dst, vvp, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
-            cout << "ø‹∞¢º±¿« ∞≥ºˆ" << vvp.size() << endl;
+            cout << "Ïô∏Í∞ÅÏÑ†Ïùò Í∞úÏàò" << vvp.size() << endl;
+            break;
 
         }
-        else if (f3.contains(Point(x, y))) {
+        else if (f3.contains(Point(x, y))) {//Î¨¥Í≤åÏ§ëÏã¨/w or h
             cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
             threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
-            int i = connectedComponentsWithStats(dst, lable, stats, cen);
-            cout << "π´∞‘¡ﬂΩ… : " << cen.at<double>(1, 0) - stats.at<int>(1, 0) << ':' << cen.at<double>(1, 1) - stats.at<int>(1, 1) << endl;
+             connectedComponentsWithStats(dst, lable, stats, cen);
+            double cgx = cen.at<double>(1, 0) - stats.at<int>(1, 0), cgy= cen.at<double>(1, 1) - stats.at<int>(1, 1);//center of gravity x,y
+            cout << "Î¨¥Í≤åÏ§ëÏã¨ : " << cgx << ':' << cgy << endl;
+            cout <<"Î¨¥Í≤å Ï§ëÏã¨ Ï¢åÌëú x/w : y/h" << cgx / stats.at<int>(1, 2) << ':' << cgy / stats.at<int>(1, 3) << endl;
+            break;
         }
-        else if (f4.contains(Point(x, y))) {
-            cout << "¡æ∑·";
-            exit(1);
+        else if (f4.contains(Point(x, y))) {//ÏÑ∏Î°ú ÏÑ†ÏúºÎ°ú Ïñ¥ÏÑú Í≤ÄÏ∂úÎêú Ïô∏Í∞ÅÏÑ†Ïùò Ï¢åÌëúÎ•º Ï∂úÎ†•
+            cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
+            threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
+            connectedComponentsWithStats(dst, lable, stats, cen);
+            double mx = cen.at<double>(1,0);
+            double my = stats.at<int>(1, 1)+stats.at<int>(1, 3) / 2;
+            line(dst, Point(mx, stats.at<int>(1, 1)),
+                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255,3);
+            findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+            cout << "ÏÑ∏Î°ú Ï§ëÏïôÏÑ†ÏùÑ Í∑∏ÏóàÏùÑ Îïå Ïô∏Í∞ÅÏÑ†Ïùò Í∞úÏàò" << vvp.size() << endl;
+            int rt = 0, lt = 0, rb = 0, lb = 0;//Ïö∞ÏÉÅÏ¢åÏÉÅÏö∞ÌïòÏ¢åÌïò Ïπ¥Ïö¥Ìä∏
+            //lt rt
+            //ld rd
+            for (int i = 1; i < vvp2.size(); i++) {
+                double px = 0, py = 0;
+                for (int j = 0; j < vvp2[i].size(); j++) {
+                    px += vvp2[i][j].x;
+                    py += vvp2[i][j].y;
+                }
+                px /= vvp2[i].size();
+                py /= vvp2[i].size();
+                dst.at<uchar>(py, px) = 255;//Ï†ê ÌëúÏãú
+                if (px < mx && py < my) lt++;
+                else if (px > mx && py < my) rt++;
+                else if (px < mx && py > my) lb++;
+                else if (px > mx && py > my) rb++;
+            }
+            cout << "rt lt \nrd ld :\n " << lt << rt << endl << lb << rb << endl;
+            imshow("dst", dst);
+            break;
         }
         else if (f5.contains(Point(x, y))) {
-            cout << "¡æ∑·";
-            exit(1);
-        }
+            double px = 0, py = 0;
+            cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
+            threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
+            connectedComponentsWithStats(dst, lable, stats, cen);
+            findContours(dst, vvp, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+            if (vvp.size() < 2) {
+                cout << "2Î≤àÏ®∞ Ïô∏Í∞ÅÏÑ† ÏóÜÏùå " << endl;
+                return;
+            }
+            for (int j = 0; j < vvp[1].size(); j++) {//2Î≤àÏß∏ Ïô∏Í∞ÅÏÑ†Ïùò Î¨¥Í≤åÏ§ëÏã¨ Íµ¨ÌïòÍ∏∞
+                px += vvp[1][j].x;
+                py += vvp[1][j].y;
+            }
+            px = (px/vvp[1].size()- stats.at<int>(1, 0)) / stats.at<int>(1, 2);
+            py =(py/ vvp[1].size()- stats.at<int>(1, 1)) / stats.at<int>(1, 3);
+            cout << "2Î≤àÏß∏ Ïô∏Í∞ÅÏÑ†Ïùò Î¨¥Í≤åÏ§ëÏã¨ x/w:y/h" << px  << ':' << py  << endl;
+            break;
+         }
     case EVENT_MOUSEMOVE:
         if (f & EVENT_FLAG_LBUTTON && r.contains(Point(x, y))) {
-            line(img, op, Point(x, y), Scalar(0, 0, 0), 2);
+            line(img, op, Point(x, y), Scalar(0, 0, 0), 5);
             op = Point(x, y);
         }
         break;
