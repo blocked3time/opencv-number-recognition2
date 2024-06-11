@@ -31,7 +31,7 @@ int number_recognition(Mat img) {
         py = ((py /vvp[1].size()) - stats.at<int>(1, 1))/ stats.at<int>(1, 3);
         if ((cgx >= 0.55 && cgy <= 0.53) && (py <= 0.4))//9
             return 9;
-        else if (cgy >= 0.53 && py >= 0.6)//6
+        else if ((cgy >= 0.5|| cgx >= 0.5) && py >= 0.6)//6
             return 6;
         else if ((cgx <= 0.55 && cgx <= 0.55) && (py <= 0.4 && px < 0.4))//4
             return 4;
@@ -44,8 +44,48 @@ int number_recognition(Mat img) {
         double mx = cen.at<double>(1, 0);
         double  my = stats.at<int>(1, 1) + stats.at<int>(1, 3) / 2;
         line(dst, Point(mx, stats.at<int>(1, 1)),
-            Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 3);
+            Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 1);
         findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+
+        if (vvp2.size() == 1) {
+            //세로로 선을 그었을 떄 다른 외각선이 검출되지 않을시
+            vvp2.clear();
+            cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);//라인 없는 깨끗한 값 받아오기
+            threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
+            morphologyEx(dst, dst, MORPH_CLOSE, Mat(), Point(-1, -1), 2);
+            line(dst, Point(stats.at<int>(1, 0), stats.at<int>(1, 1)),
+                Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3) ), 255, 1);
+            findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+            px = 0;
+            py = 0;
+            for (int i = 1; i < vvp2.size(); i++) {
+                px = 0;
+                py = 0;
+                for (int j = 0; j < vvp2[i].size(); j++) {
+                    px += vvp2[i][j].x;
+                    py += vvp2[i][j].y;
+                }
+                px /= vvp2[i].size();
+                py /= vvp2[i].size();
+                dst.at<uchar>(py, px) = 255;//점 표시
+                if (px < mx && py < my) lt++;
+                else if (px > mx && py < my) rt++;
+                else if (px < mx && py > my) lb++;
+                else if (px > mx && py > my) rb++;
+            }
+
+
+            if (((vvp2.size() == 2&&(cgx >= 0.5 && cgy<= 0.4)) && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1) &&(rb == 0&&lb == 0))//7
+                return 7;
+            else if ((vvp2.size() <= 2)  && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1.3)//1
+                return 1;
+            else if (vvp2.size()<= 3 && vvp2.size() >= 2 &&(cgx <= 0.5 &&cgy <= 0.5))//4
+                return 4;
+            else
+                return -1;
+        }
+
+
         for (int i = 1; i < vvp2.size(); i++) {
             px = 0;
             py = 0;
@@ -61,18 +101,15 @@ int number_recognition(Mat img) {
             else if (px < mx && py > my) lb++;
             else if (px > mx && py > my) rb++;
         }
-        if ((rt >= 1 && rb >= 1) && (cgx >= 0.5))
+        if ((rt >= 1 && rb >= 1) && (cgx >= 0.45))
             return 3;
-        else if (rt >= 1 && lb >= 1)
+        else if (rt >= 1 && lb >= 1)//2
             return 2;
-        else if ((lt >= 1 && rb >= 1) && (rt == 0 && lb == 0))
+        else if (((lt >= 1 && rb >= 1) && (rt == 0 && lb == 0))&& cgy<0.47)
             return 5;
-        else if (((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2)) > 1.8 && ((0.4 <= cgy && cgy <= 0.6) && (0.3 <= cgx && cgx <= 0.7))) {//1
-            return 1;
-        }
-        else if ((lt == 0&&cgy <= 0.35) && (lb == 0 && rb == 0))
+        else if (((rt == 1 && cgy<= 0.4)&& ((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1)&&vvp2.size() == 2))//7
             return 7;
-        else if (lt == 1 && ((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) < 1.1) )
+        else if ((cgx <= 0.46 && cgy <= 0.52))//4
             return 4;
         else return -1;
     }
@@ -175,10 +212,41 @@ void mousecallback(int e, int x, int y, int f, void* u) {
             double mx = cen.at<double>(1,0);
             double my = stats.at<int>(1, 1)+stats.at<int>(1, 3) / 2;
             line(dst, Point(mx, stats.at<int>(1, 1)),
-                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255,3);
+                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255,1);
             findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
-            cout << "세로 중앙선을 그었을 때 외각선의 개수" << vvp.size() << endl;
+            cout << "세로 중앙선을 그었을 때 외각선의 개수" << vvp2.size() << endl;
             int rt = 0, lt = 0, rb = 0, lb = 0;//우상좌상우하좌하 카운트
+            if (vvp2.size() == 1) {
+                vvp2.clear();
+                cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);//라인 없는 깨끗한 값 받아오기
+                threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
+                morphologyEx(dst, dst, MORPH_CLOSE, Mat(), Point(-1, -1), 2);
+                line(dst, Point(stats.at<int>(1, 0), stats.at<int>(1, 1)),
+                    Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 1);
+                findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
+                double px = 0;
+                double py = 0;
+                for (int i = 1; i < vvp2.size(); i++) {
+                    px = 0;
+                    py = 0;
+                    for (int j = 0; j < vvp2[i].size(); j++) {
+                        px += vvp2[i][j].x;
+                        py += vvp2[i][j].y;
+                    }
+                    px /= vvp2[i].size();
+                    py /= vvp2[i].size();
+                    dst.at<uchar>(py, px) = 255;//점 표시
+            
+                    if (px > mx && py < my) rt++;
+                    else if (px < mx && py < my) lt++;
+                    else if (px < mx && py > my) lb++;
+                    else if (px > mx && py > my) rb++;
+                }
+                imshow("dst", dst);
+                cout << "대각선으로 그었을 떄 외각선의 개수 : " << vvp2.size() << endl;;
+                cout << "lt rt\nld rd :\n " << lt << rt << endl << lb << rb << endl;
+                break;
+            }
             //lt rt
             //ld rd
             for (int i = 1; i < vvp2.size(); i++) {
