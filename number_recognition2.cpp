@@ -28,16 +28,16 @@ int number_recognition(Mat img) {
             py += vvp[1][j].y;
         }
         px = ((px / vvp[1].size()) - stats.at<int>(1, 0)) / stats.at<int>(1, 2);
-        py = ((py /vvp[1].size()) - stats.at<int>(1, 1))/ stats.at<int>(1, 3);
+        py = ((py / vvp[1].size()) - stats.at<int>(1, 1)) / stats.at<int>(1, 3);
 
         if ((cgx >= 0.55 && cgy <= 0.53) && (py <= 0.42))//9
             return 9;
-        else if ((cgy >= 0.5|| cgx >= 0.5) && py >= 0.6)//6
+        else if ((cgy >= 0.5 || cgx >= 0.5) && py >= 0.6)//6
             return 6;
         else if ((cgx <= 0.47 && cgy <= 0.58) && (py <= 0.42 && px <= 0.42))//4
             return 4;
-        else if (((0.4 <= cgx && cgx <= 0.6) && (0.4 <= cgy && cgy <= 0.6))&&((0.4 <= px && px <= 0.6) && (0.4 <= py && py <= 0.6)))//무게 중심이 중간일 떄
-        return 0;
+        else if (((0.4 <= cgx && cgx <= 0.6) && (0.4 <= cgy && cgy <= 0.6)) && ((0.4 <= px && px <= 0.6) && (0.4 <= py && py <= 0.6)))//무게 중심이 중간일 떄
+            return 0;
         else return -1;
     }
     else if (vvp.size() == 1) {//외각선이 1개 일 떄
@@ -55,7 +55,7 @@ int number_recognition(Mat img) {
             threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
             morphologyEx(dst, dst, MORPH_CLOSE, Mat(), Point(-1, -1), 2);
             line(dst, Point(stats.at<int>(1, 0), stats.at<int>(1, 1)),
-                Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3) ), 255, 3);
+                Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 3);
             findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
             px = 0;
             py = 0;
@@ -76,12 +76,14 @@ int number_recognition(Mat img) {
             }
 
 
-            if (((vvp2.size() == 2&&(cgx >= 0.5 && cgy<= 0.4)) && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1) &&(rb == 0&&lb == 0))//7
+            if (((vvp2.size() == 2 && (cgx >= 0.5 && cgy <= 0.4)) && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1) && (rb == 0 && lb == 0))//7
                 return 7;
-            else if ((vvp2.size() == 1)  && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1.3)//1
+            else if ((vvp2.size() == 1) && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1.3)//1
                 return 1;
-            else if (vvp2.size()>=2 && vvp2.size() >= 2 &&(cgx <= 0.45 &&cgy <= 0.5))//4
+            else if (vvp2.size() >= 2 && vvp2.size() >= 2 && (cgx <= 0.48 && cgy <= 0.56))//4
                 return 4;
+            else if (lt >= 1 && rb >= 1) // 2 밑부분 겹쳐쓸 떄
+                return 2;
             else
                 return -1;
         }
@@ -102,13 +104,14 @@ int number_recognition(Mat img) {
             else if (px < mx && py > my) lb++;
             else if (px > mx && py > my) rb++;
         }
-        if ((cgx <= 0.46 && cgy <= 0.54))//4
-            return 4;
-        else if ((rt >= 1 && lb >= 1)&&(double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) < 1.7)//2
-            return 2;
-        else if (((lt >= 1 && rb >= 1) && (rt == 0 && lb == 0))&& cgy<0.47)
+        
+        if (((lt >= 1 && rb >= 1) && (rt == 0 && lb == 0)) && cgy <= 0.55)//5
             return 5;
-        else  if ((rt >= 1 && rb >= 1) && (cgx >= 0.45))
+        else  if ((cgx <= 0.48 && cgy <= 0.56))//4
+            return 4;
+        else if ((rt >= 1 && lb >= 1) && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) < 1.7)//2
+            return 2;
+        else  if ((rt >= 1 && rb >= 1) && (cgx >= 0.48))//3
             return 3;
         else return -1;
     }
@@ -162,14 +165,14 @@ void mousecallback(int e, int x, int y, int f, void* u) {
             dst.copyTo(img(Rect(Point(2, 2), Point(498, 498))));//사이즈 맞춤
         }
         else if (run.contains(Point(x, y))) {
-            
+
             int num = number_recognition(img);
             if (num == -1) {
                 cerr << "인식 불가" << endl;
                 return;
             }
-            else 
-                cout <<"인식한 값"  << num << endl;
+            else
+                cout << "인식한 값" << num << endl;
             break;
         }
         else if (ex.contains(Point(x, y))) {
@@ -197,10 +200,10 @@ void mousecallback(int e, int x, int y, int f, void* u) {
             cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);
             threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
             morphologyEx(dst, dst, MORPH_CLOSE, Mat(), Point(-1, -1), 2);
-             connectedComponentsWithStats(dst, lable, stats, cen);
-            double cgx = cen.at<double>(1, 0) - stats.at<int>(1, 0), cgy= cen.at<double>(1, 1) - stats.at<int>(1, 1);//center of gravity x,y
+            connectedComponentsWithStats(dst, lable, stats, cen);
+            double cgx = cen.at<double>(1, 0) - stats.at<int>(1, 0), cgy = cen.at<double>(1, 1) - stats.at<int>(1, 1);//center of gravity x,y
             cout << "무게중심 : " << cgx << ':' << cgy << endl;
-            cout <<"무게 중심 좌표 x/w : y/h" << cgx / stats.at<int>(1, 2) << ':' << cgy / stats.at<int>(1, 3) << endl;
+            cout << "무게 중심 좌표 x/w : y/h" << cgx / stats.at<int>(1, 2) << ':' << cgy / stats.at<int>(1, 3) << endl;
             break;
         }
         else if (f4.contains(Point(x, y))) {//세로 선으로 어서 검출된 외각선의 좌표를 출력
@@ -208,10 +211,10 @@ void mousecallback(int e, int x, int y, int f, void* u) {
             threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
             morphologyEx(dst, dst, MORPH_CLOSE, Mat(), Point(-1, -1), 2);
             connectedComponentsWithStats(dst, lable, stats, cen);
-            double mx = cen.at<double>(1,0);
-            double my = stats.at<int>(1, 1)+stats.at<int>(1, 3) / 2;
+            double mx = cen.at<double>(1, 0);
+            double my = stats.at<int>(1, 1) + stats.at<int>(1, 3) / 2;
             line(dst, Point(mx, stats.at<int>(1, 1)),
-                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255,3);
+                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 3);
             findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
             cout << "세로 중앙선을 그었을 때 외각선의 개수" << vvp2.size() << endl;
             int rt = 0, lt = 0, rb = 0, lb = 0;//우상좌상우하좌하 카운트
@@ -235,7 +238,7 @@ void mousecallback(int e, int x, int y, int f, void* u) {
                     px /= vvp2[i].size();
                     py /= vvp2[i].size();
                     dst.at<uchar>(py, px) = 255;//점 표시
-            
+
                     if (px > mx && py < my) rt++;
                     else if (px < mx && py < my) lt++;
                     else if (px < mx && py > my) lb++;
@@ -281,11 +284,11 @@ void mousecallback(int e, int x, int y, int f, void* u) {
                 px += vvp[1][j].x;
                 py += vvp[1][j].y;
             }
-            px = (px/vvp[1].size()- stats.at<int>(1, 0)) / stats.at<int>(1, 2);
-            py =(py/ vvp[1].size()- stats.at<int>(1, 1)) / stats.at<int>(1, 3);
-            cout << "2번째 외각선의 무게중심 x/w:y/h" << px  << ':' << py  << endl;
+            px = (px / vvp[1].size() - stats.at<int>(1, 0)) / stats.at<int>(1, 2);
+            py = (py / vvp[1].size() - stats.at<int>(1, 1)) / stats.at<int>(1, 3);
+            cout << "2번째 외각선의 무게중심 x/w:y/h" << px << ':' << py << endl;
             break;
-         }
+        }
     case EVENT_MOUSEMOVE:
         if (f & EVENT_FLAG_LBUTTON && r.contains(Point(x, y))) {
             line(img, op, Point(x, y), Scalar(0, 0, 0), 3);
