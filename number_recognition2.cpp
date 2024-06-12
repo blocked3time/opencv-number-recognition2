@@ -29,11 +29,12 @@ int number_recognition(Mat img) {
         }
         px = ((px / vvp[1].size()) - stats.at<int>(1, 0)) / stats.at<int>(1, 2);
         py = ((py /vvp[1].size()) - stats.at<int>(1, 1))/ stats.at<int>(1, 3);
-        if ((cgx >= 0.55 && cgy <= 0.53) && (py <= 0.4))//9
+
+        if ((cgx >= 0.55 && cgy <= 0.53) && (py <= 0.42))//9
             return 9;
         else if ((cgy >= 0.5|| cgx >= 0.5) && py >= 0.6)//6
             return 6;
-        else if ((cgx <= 0.55 && cgx <= 0.55) && (py <= 0.4 && px < 0.4))//4
+        else if ((cgx <= 0.47 && cgy <= 0.58) && (py <= 0.42 && px <= 0.42))//4
             return 4;
         else if (((0.4 <= cgx && cgx <= 0.6) && (0.4 <= cgy && cgy <= 0.6))&&((0.4 <= px && px <= 0.6) && (0.4 <= py && py <= 0.6)))//무게 중심이 중간일 떄
         return 0;
@@ -44,17 +45,17 @@ int number_recognition(Mat img) {
         double mx = cen.at<double>(1, 0);
         double  my = stats.at<int>(1, 1) + stats.at<int>(1, 3) / 2;
         line(dst, Point(mx, stats.at<int>(1, 1)),
-            Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 1);
+            Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 3);
         findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
 
-        if (vvp2.size() == 1) {
-            //세로로 선을 그었을 떄 다른 외각선이 검출되지 않을시
+        if (vvp2.size() <= 2) {
+            //세로로 선을 그었을 떄 다른 외각선 2개 이상 검출되지 않을시
             vvp2.clear();
             cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);//라인 없는 깨끗한 값 받아오기
             threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
             morphologyEx(dst, dst, MORPH_CLOSE, Mat(), Point(-1, -1), 2);
             line(dst, Point(stats.at<int>(1, 0), stats.at<int>(1, 1)),
-                Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3) ), 255, 1);
+                Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3) ), 255, 3);
             findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
             px = 0;
             py = 0;
@@ -77,9 +78,9 @@ int number_recognition(Mat img) {
 
             if (((vvp2.size() == 2&&(cgx >= 0.5 && cgy<= 0.4)) && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1) &&(rb == 0&&lb == 0))//7
                 return 7;
-            else if ((vvp2.size() <= 2)  && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1.3)//1
+            else if ((vvp2.size() == 1)  && (double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1.3)//1
                 return 1;
-            else if (vvp2.size()<= 3 && vvp2.size() >= 2 &&(cgx <= 0.5 &&cgy <= 0.5))//4
+            else if (vvp2.size()>=2 && vvp2.size() >= 2 &&(cgx <= 0.45 &&cgy <= 0.5))//4
                 return 4;
             else
                 return -1;
@@ -101,16 +102,14 @@ int number_recognition(Mat img) {
             else if (px < mx && py > my) lb++;
             else if (px > mx && py > my) rb++;
         }
-        if ((rt >= 1 && rb >= 1) && (cgx >= 0.45))
-            return 3;
-        else if (rt >= 1 && lb >= 1)//2
+        if ((cgx <= 0.46 && cgy <= 0.54))//4
+            return 4;
+        else if ((rt >= 1 && lb >= 1)&&(double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) < 1.7)//2
             return 2;
         else if (((lt >= 1 && rb >= 1) && (rt == 0 && lb == 0))&& cgy<0.47)
             return 5;
-        else if (((rt == 1 && cgy<= 0.4)&& ((double)stats.at<int>(1, 3) / (double)stats.at<int>(1, 2) > 1)&&vvp2.size() == 2))//7
-            return 7;
-        else if ((cgx <= 0.46 && cgy <= 0.52))//4
-            return 4;
+        else  if ((rt >= 1 && rb >= 1) && (cgx >= 0.45))
+            return 3;
         else return -1;
     }
     else return -1;
@@ -212,7 +211,7 @@ void mousecallback(int e, int x, int y, int f, void* u) {
             double mx = cen.at<double>(1,0);
             double my = stats.at<int>(1, 1)+stats.at<int>(1, 3) / 2;
             line(dst, Point(mx, stats.at<int>(1, 1)),
-                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255,1);
+                Point(mx, stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255,3);
             findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
             cout << "세로 중앙선을 그었을 때 외각선의 개수" << vvp2.size() << endl;
             int rt = 0, lt = 0, rb = 0, lb = 0;//우상좌상우하좌하 카운트
@@ -222,7 +221,7 @@ void mousecallback(int e, int x, int y, int f, void* u) {
                 threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
                 morphologyEx(dst, dst, MORPH_CLOSE, Mat(), Point(-1, -1), 2);
                 line(dst, Point(stats.at<int>(1, 0), stats.at<int>(1, 1)),
-                    Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 1);
+                    Point(stats.at<int>(1, 0) + stats.at<int>(1, 2), stats.at<int>(1, 1) + stats.at<int>(1, 3)), 255, 3);
                 findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
                 double px = 0;
                 double py = 0;
