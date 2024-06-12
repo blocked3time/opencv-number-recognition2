@@ -215,7 +215,7 @@ void mousecallback(int e, int x, int y, int f, void* u) {
             findContours(dst, vvp2, hierarchy, RETR_CCOMP, CHAIN_APPROX_SIMPLE);
             cout << "세로 중앙선을 그었을 때 외각선의 개수" << vvp2.size() << endl;
             int rt = 0, lt = 0, rb = 0, lb = 0;//우상좌상우하좌하 카운트
-            if (vvp2.size() == 1) {
+            if (vvp2.size() <= 2) {
                 vvp2.clear();
                 cvtColor(img(Rect(Point(2, 2), Point(498, 498))), dst, COLOR_BGR2GRAY);//라인 없는 깨끗한 값 받아오기
                 threshold(dst, dst, 128, 255, THRESH_BINARY_INV);
